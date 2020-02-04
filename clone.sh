@@ -5,3 +5,7 @@ git clone $GIT_URL deployment
 cd deployment/env
 
 jx step helm apply
+
+cd ../../
+
+rm -rf deployment

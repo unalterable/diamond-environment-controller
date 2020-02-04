@@ -15,5 +15,7 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY ./clone.sh .
+COPY ./package.json .
+COPY ./index.js .
 
-CMD ["bash", "./clone.sh"]
+CMD ["npm", "start"]

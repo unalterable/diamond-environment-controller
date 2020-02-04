@@ -25,7 +25,7 @@ const requestHandler = (request, response) => {
     }
   })
   console.log(`>>>>> New task registered (Iteration ${numberInQueue})`)
-  response.end('OK')
+  response.end(`OK - New task registered (Iteration ${numberInQueue})`)
 }
 
 http
