@@ -1,67 +1,69 @@
+{{- if .Values.knativeDeploy }}
+{{- else }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "diamond-environment-controller.fullname" . }}
+  name: {{ template "fullname" . }}
   labels:
-{{ include "diamond-environment-controller.labels" . | indent 4 }}
+    draft: {{ default "draft-app" .Values.draft }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
 spec:
-  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "diamond-environment-controller.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: {{ template "fullname" . }}
+{{- if .Values.hpa.enabled }}
+{{- else }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "diamond-environment-controller.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        draft: {{ default "draft-app" .Values.draft }}
+        app: {{ template "fullname" . }}
+{{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: diamond-environment-controller
       containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:
-          {{- range $pkey, $pval := .Values.env }}
-          - name: {{ $pkey }}
-            value: {{ quote $pval }}
-          {{- end }}
-          {{- range $pkey, $pval := .Values.secretEnv }}
-          - name: {{ $pkey }}
-            {{- range $sname, $skey := $pval }}
-            valueFrom:
-              secretKeyRef:
-                name: {{ quote $sname }}
-                key: {{ quote $skey }}
-            {{- end }}
-          {{- end }}
-          ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-    {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+{{- range $pkey, $pval := .Values.env }}
+        - name: {{ $pkey }}
+          value: {{ quote $pval }}
+{{- end }}
+{{- range $pkey, $pval := .Values.secretEnv }}
+        - name: {{ $pkey }}
+{{- range $sname, $skey := $pval }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ quote $sname }}
+              key: {{ quote $skey }}
+{{- end }}
+{{- end }}
+        envFrom:
+{{ toYaml .Values.envFrom | indent 10 }}
+
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.probePath }}
+            port: {{ .Values.service.internalPort }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.probePath }}
+            port: {{ .Values.service.internalPort }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+{{- end }}
