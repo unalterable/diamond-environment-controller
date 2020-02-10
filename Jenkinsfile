@@ -9,6 +9,15 @@ pipeline {
     DOCKER_REGISTRY_ORG = 'yoshi-248909'
   }
   stages {
+    stage('Build Prep') {
+      steps {
+        container('nodejs') {
+          withCredentials( [file(credentialsId: 'GCP_SA', variable: 'GCP_SA')]) {
+            sh script: "cat ${env.GCP_SA} > /home/jenkins/gcloud.json && gcloud auth activate-service-account --key-file=/home/jenkins/gcloud.json", label: 'Google Cloud Credentials'
+          }
+        }
+      }
+    }
     stage('CI Build and push snapshot') {
       when {
         branch 'PR-*'
@@ -23,12 +32,11 @@ pipeline {
           sh "jx step credential -s npm-token -k file -f /builder/home/.npmrc --optional=true"
           sh "npm install"
           sh "CI=true DISPLAY=:99 npm test"
-          sh "export VERSION=$PREVIEW_VERSION && skaffold build -f skaffold.yaml"
-          sh "jx step post build --image $DOCKER_REGISTRY/$ORG/$APP_NAME:$PREVIEW_VERSION"
-          dir('./charts/preview') {
-            sh "make preview"
-            sh "jx preview --app $APP_NAME --dir ../.."
-          }
+          sh script: "gcloud builds submit --substitutions=_APP_NAME='$APP_NAME',TAG_NAME='$PREVIEW_VERSION' .", label: 'Google Cloud Build'
+          // dir('./charts/preview') {
+          //   sh "make preview"
+          //   sh "jx preview --app $APP_NAME --dir ../.."
+          // }
         }
       }
     }
@@ -38,7 +46,6 @@ pipeline {
       }
       steps {
         container('nodejs') {
-
           // ensure we're not on a detached head
           sh "git checkout master"
           sh "git config --global credential.helper store"
@@ -50,7 +57,8 @@ pipeline {
           sh "jx step credential -s npm-token -k file -f /builder/home/.npmrc --optional=true"
           sh "npm install"
           sh "CI=true DISPLAY=:99 npm test"
-          sh "export VERSION=`cat VERSION` && skaffold build -f skaffold.yaml"
+
+          sh script: "gcloud builds submit --substitutions=_APP_NAME='$APP_NAME',TAG_NAME=\$(cat VERSION) .", label: 'Google Cloud Build'
           sh "jx step post build --image $DOCKER_REGISTRY/$ORG/$APP_NAME:\$(cat VERSION)"
         }
       }
