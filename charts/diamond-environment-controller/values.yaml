@@ -5,8 +5,8 @@
 replicaCount: 1
 
 image:
-  repository: nginx
-  tag: stable
+  repository: gcr.io/yoshi-248909/diamond-environment-controller
+  tag: 0.0.4
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
