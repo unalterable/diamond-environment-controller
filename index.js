@@ -2,9 +2,11 @@ const http = require('http')
 const childProcess = require('child_process')
 const port = 3000
 
-const exec = cmd => new Promise((resolve, reject) =>
-  childProcess.exec(cmd, (error, stdout) =>
-    error === null ? resolve(stdout) : reject(error.message)))
+const exec = cmd => new Promise((resolve, reject) => {
+  childProcess.exec(cmd, (error, stdout) => error === null ? resolve(stdout) : reject(error.message))
+})
+
+const execWithLog = cmd => exec(cmd).then(res => console.log(res) || res).catch(err => { console.error(err); throw(err) })
 
 const addToPromiseChain = ((chain, iteration) => newItem => {
   const thisIteration = iteration++
@@ -15,9 +17,17 @@ const addToPromiseChain = ((chain, iteration) => newItem => {
 const task = async currIteration => {
   try {
     console.log(`>>>>> Iteration ${currIteration} starting`)
-    const result = await exec('sh ./clone.sh')
+    await execWithLog('ENV_REPO=$(kubectl get env this -o jsonpath="{.spec.source.url}")')
+    await execWithLog('echo ENV_REPO: $ENV_REPO')
+    await execWithLog('GIT_URL=$(echo $ENV_REPO | sed -e "s/^https:\/\//https:\/\/$GITHUB_ACCESS_TOKEN@/")')
+    await execWithLog('echo GIT_URL: $GIT_URL')
+    await execWithLog('git clone $GIT_URL deployment')
+    await execWithLog('cd deployment/env')
+    await execWithLog('jx step helm apply')
+    await execWithLog('cd ../../')
+    await execWithLog('rm -rf deployment')
+
     console.log(`>>>>> Iteration ${currIteration} succeeded:`)
-    console.log(result)
   } catch (e) {
     console.log(`>>>>> Iteration ${currIteration} failed:`)
     console.log(e)
