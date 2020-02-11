@@ -1,5 +1,3 @@
-{{- if .Values.knativeDeploy }}
-{{- else }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -11,10 +9,7 @@ spec:
   selector:
     matchLabels:
       app: {{ template "fullname" . }}
-{{- if .Values.hpa.enabled }}
-{{- else }}
   replicas: {{ .Values.replicaCount }}
-{{- end }}
   template:
     metadata:
       labels:
@@ -66,4 +61,3 @@ spec:
         resources:
 {{ toYaml .Values.resources | indent 12 }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
-{{- end }}
