@@ -31,13 +31,35 @@ const registerTask = () => {
   return result
 }
 
-const requestHandler = (request, response) => {
-  if(request.url === '/github-webhook') {
-    console.log('>>>>> Request webhook event received')
-    response.end(registerTask())
-  } else {
-    console.log('>>>>> Request recieved and ignored (classified as invalid webhook)')
-    response.end('Request ignored (classified as invalid webhook)')
+const processBody = request => new Promise((resolve, reject) => {
+  let body = '';
+  request.on('data', chunk => { body += chunk.toString() })
+  request.on('end', () => {
+    try {
+      resolve(JSON.parse(body))
+    } catch (e){
+      reject(e)
+    }
+  });
+})
+
+const requestHandler = async (request, response) => {
+  try {
+    if (request.method === 'POST') {
+      const body = await processBody(request)
+      if(body.ref === "refs/heads/master") {
+        console.log('>>>>> Request webhook event received')
+        response.end(registerTask())
+      } else {
+        console.log('>>>>> Request recieved and ignored (classified as invalid webhook)')
+        response.end('Request ignored (classified as invalid webhook)')
+      }
+    } else {
+      response.end('OK')
+    }
+  } catch (e) {
+    console.log('>>>>> Request created an error:', e)
+    response.end(`Error ${e}`)
   }
 }
 
