@@ -2,9 +2,11 @@ const http = require('http')
 const childProcess = require('child_process')
 const port = 3000
 
-const exec = cmd => new Promise((resolve, reject) =>
-  childProcess.exec(cmd, (error, stdout) =>
-    error === null ? resolve(stdout) : reject(error.message)))
+const exec = cmd => new Promise((resolve, reject) => {
+  childProcess.exec(cmd, (error, stdout) => error === null ? resolve(stdout) : reject(error.message))
+})
+
+const execWithLog = cmd => console.log(cmd) || exec(cmd).then(res => console.log(res) || res).catch(err => { console.error(err); throw(err) })
 
 const addToPromiseChain = ((chain, iteration) => newItem => {
   const thisIteration = iteration++
@@ -15,9 +17,15 @@ const addToPromiseChain = ((chain, iteration) => newItem => {
 const task = async currIteration => {
   try {
     console.log(`>>>>> Iteration ${currIteration} starting`)
-    const result = await exec('sh ./clone.sh')
+    const envRepo = await execWithLog('kubectl get env this -o jsonpath="{.spec.source.url}"')
+    const gitUrl = envRepo.replace(/https:\/\//, `https://${process.env.GITHUB_ACCESS_TOKEN}@`)
+    await execWithLog(`git clone ${gitUrl} deployment`)
+    await execWithLog('cd deployment/env')
+    await execWithLog('jx step helm apply')
+    await execWithLog('cd ../../')
+    await execWithLog('rm -rf deployment')
+
     console.log(`>>>>> Iteration ${currIteration} succeeded:`)
-    console.log(result)
   } catch (e) {
     console.log(`>>>>> Iteration ${currIteration} failed:`)
     console.log(e)
@@ -47,7 +55,7 @@ const requestHandler = async (request, response) => {
   try {
     if (request.method === 'POST') {
       const body = await processBody(request)
-      if(body.ref === "refs/heads/master") {
+      if(request.url === '/github-webhook' && body.ref === "refs/heads/master") {
         console.log('>>>>> Request webhook event received')
         response.end(registerTask())
       } else {
