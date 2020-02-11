@@ -6,15 +6,11 @@ GIT_URL=$(echo $ENV_REPO | sed -e "s/^https:\/\//https:\/\/$GITHUB_ACCESS_TOKEN@
 echo GIT_URL: $GIT_URL
 
 git clone $GIT_URL deployment
-ls -latr
 
 cd deployment/env
-ls -latr
 
-JX_LOG_LEVEL=debug jx step helm apply
+jx step helm apply
 
 cd ../../
-ls -latr
 
 rm -rf deployment
-ls -latr

@@ -12,19 +12,34 @@ const exec = cmd => new Promise((resolve, reject) =>
   childProcess.exec(cmd, (error, stdout) =>
     error === null ? resolve(stdout) : reject(error.message)))
 
-const requestHandler = (request, response) => {
-  if (request.url === '/github-webhook'){
-    const numberInQueue = addToPromiseChain(async currIteration => {
-      try {
-        console.log(`>>>>> Iteration ${currIteration} starting`)
-        const result = await exec('sh ./clone.sh')
-        console.log(`>>>>> Iteration ${currIteration} succeeded:`)
-        console.log(result)
-      } catch (e) {
-        console.log(`>>>>> Iteration ${currIteration} failed:`)
-        console.log(e)
-      }
-    })
+const processBody = request => new Promise((resolve, reject) => {
+  let body = '';
+  request.on('data', chunk => { body += chunk.toString() })
+  request.on('end', () => {
+    try {
+      resolve(JSON.parse(body))
+    } catch (e){
+      resolve({})
+    }
+  });
+})
+
+const task = async currIteration => {
+  try {
+    console.log(`>>>>> Iteration ${currIteration} starting`)
+    const result = await exec('sh ./clone.sh')
+    console.log(`>>>>> Iteration ${currIteration} succeeded:`)
+    console.log(result)
+  } catch (e) {
+    console.log(`>>>>> Iteration ${currIteration} failed:`)
+    console.log(e)
+  }
+}
+
+const requestHandler = async (request, response) => {
+  const body = await processBody(request)
+  if (request.url === '/github-webhook' && body.ref === "refs/heads/master"){
+    const numberInQueue = addToPromiseChain(task)
     console.log(`>>>>> New task registered (Iteration ${numberInQueue})`)
     response.end(`OK - New task registered (Iteration ${numberInQueue})`)
   } else {
