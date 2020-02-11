@@ -4,7 +4,9 @@ image:
   tag: dev
   pullPolicy: IfNotPresent
 
-env: {}
+env:
+  ENV_REPO: https://github.com/tempo-bot/environment-yoshi104-production.git
+
 secretEnv:
   GITHUB_ACCESS_TOKEN:
     github-credentials: token
@@ -20,11 +22,11 @@ service:
 
 resources:
   limits:
-    cpu: 400m
-    memory: 256Mi
-  requests:
     cpu: 200m
-    memory: 128Mi
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
 probePath: /
 livenessProbe:
   initialDelaySeconds: 60
