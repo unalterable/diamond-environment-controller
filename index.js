@@ -26,12 +26,12 @@ const processBody = request => new Promise((resolve, reject) => {
 
 const task = async currIteration => {
   try {
-    console.log(`>>>>> Iteration ${currIteration} starting`)
+    console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} starting`)
     const result = await exec('sh ./clone.sh')
-    console.log(`>>>>> Iteration ${currIteration} succeeded:`)
+    console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} succeeded:`)
     console.log(result)
   } catch (e) {
-    console.log(`>>>>> Iteration ${currIteration} failed:`)
+    console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} failed:`)
     console.log(e)
   }
 }
@@ -40,9 +40,10 @@ const requestHandler = async (request, response) => {
   const body = await processBody(request)
   if (request.url === '/github-webhook' && body.ref === "refs/heads/master"){
     const numberInQueue = addToPromiseChain(task)
-    console.log(`>>>>> New task registered (Iteration ${numberInQueue})`)
+    console.log(`${(new Date()).toISOString()} >>> New task registered (Iteration ${numberInQueue})`)
     response.end(`OK - New task registered (Iteration ${numberInQueue})`)
   } else {
+    console.log(`${(new Date()).toISOString()} >>> Request Rejected`)
     response.end(`OK`)
   }
 }
@@ -69,7 +70,7 @@ http
 
 // const task = async currIteration => {
 //   try {
-//     console.log(`>>>>> Iteration ${currIteration} starting`)
+//     console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} starting`)
 //     const envRepo = await execWithLog('kubectl get env this -o jsonpath="{.spec.source.url}"')
 //     const gitUrl = envRepo.replace(/https:\/\//, `https://${process.env.GITHUB_ACCESS_TOKEN}@`)
 //     await execWithLog(`git clone ${gitUrl} deployment`)
@@ -78,16 +79,16 @@ http
 //     await execWithLog('ls -latr')
 //     await execWithLog('rm -rf deployment')
 
-//     console.log(`>>>>> Iteration ${currIteration} succeeded:`)
+//     console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} succeeded:`)
 //   } catch (e) {
-//     console.log(`>>>>> Iteration ${currIteration} failed:`)
+//     console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} failed:`)
 //     console.log(e)
 //   }
 // }
 
 // const registerTask = () => {
 //   const numberInQueue = addToPromiseChain(task)
-//   const result = `>>>>> New task registered (Iteration ${numberInQueue})`
+//   const result = `${(new Date()).toISOString()} >>> New task registered (Iteration ${numberInQueue})`
 //   console.log(result)
 //   return result
 // }
@@ -109,17 +110,17 @@ http
 //     if (request.method === 'POST') {
 //       const body = await processBody(request)
 //       if(request.url === '/github-webhook' && body.ref === "refs/heads/master") {
-//         console.log('>>>>> Request webhook event received')
+//         console.log('${(new Date()).toISOString()} >>> Request webhook event received')
 //         response.end(registerTask())
 //       } else {
-//         console.log('>>>>> Request recieved and ignored (classified as invalid webhook)')
+//         console.log('${(new Date()).toISOString()} >>> Request recieved and ignored (classified as invalid webhook)')
 //         response.end('Request ignored (classified as invalid webhook)')
 //       }
 //     } else {
 //       response.end('OK')
 //     }
 //   } catch (e) {
-//     console.log('>>>>> Request created an error:', e)
+//     console.log('${(new Date()).toISOString()} >>> Request created an error:', e)
 //     response.end(`Error ${e}`)
 //   }
 // }
