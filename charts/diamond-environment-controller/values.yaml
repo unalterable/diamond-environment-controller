@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
-  repository: draft
-  tag: dev
+  repository: gcr.io/yoshi-248909/diamond-environment-controller
+  tag: 0.0.22
   pullPolicy: IfNotPresent
 
 env:
