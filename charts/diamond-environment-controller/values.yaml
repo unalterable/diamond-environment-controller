@@ -4,7 +4,9 @@ image:
   tag: dev
   pullPolicy: IfNotPresent
 
-env: {}
+env:
+  ENV_REPO: https://github.com/tempo-bot/environment-yoshi104-production.git
+
 secretEnv:
   GITHUB_ACCESS_TOKEN:
     github-credentials: token
