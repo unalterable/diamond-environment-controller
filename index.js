@@ -2,30 +2,43 @@ const http = require('http')
 const childProcess = require('child_process')
 const port = 3000
 
+const exec = cmd => new Promise((resolve, reject) =>
+  childProcess.exec(cmd, (error, stdout) =>
+    error === null ? resolve(stdout) : reject(error.message)))
+
 const addToPromiseChain = ((chain, iteration) => newItem => {
   const thisIteration = iteration++
   chain = chain.then(() => newItem(thisIteration)).catch(console.error)
   return thisIteration
 })(Promise.resolve(), 1)
 
-const exec = cmd => new Promise((resolve, reject) =>
-  childProcess.exec(cmd, (error, stdout) =>
-    error === null ? resolve(stdout) : reject(error.message)))
+const task = async currIteration => {
+  try {
+    console.log(`>>>>> Iteration ${currIteration} starting`)
+    const result = await exec('sh ./clone.sh')
+    console.log(`>>>>> Iteration ${currIteration} succeeded:`)
+    console.log(result)
+  } catch (e) {
+    console.log(`>>>>> Iteration ${currIteration} failed:`)
+    console.log(e)
+  }
+}
+
+const registerTask = () => {
+  const numberInQueue = addToPromiseChain(task)
+  const result = `>>>>> New task registered (Iteration ${numberInQueue})`
+  console.log(result)
+  return result
+}
 
 const requestHandler = (request, response) => {
-  const numberInQueue = addToPromiseChain(async currIteration => {
-    try {
-      console.log(`>>>>> Iteration ${currIteration} starting`)
-      const result = await exec('sh ./clone.sh')
-      console.log(`>>>>> Iteration ${currIteration} succeeded:`)
-      console.log(result)
-    } catch (e) {
-      console.log(`>>>>> Iteration ${currIteration} failed:`)
-      console.log(e)
-    }
-  })
-  console.log(`>>>>> New task registered (Iteration ${numberInQueue})`)
-  response.end(`OK - New task registered (Iteration ${numberInQueue})`)
+  if(request.url === '/github-webhook') {
+    console.log('>>>>> Request webhook event received')
+    response.end(registerTask())
+  } else {
+    console.log('>>>>> Request recieved and ignored (classified as invalid webhook)')
+    response.end('Request ignored (classified as invalid webhook)')
+  }
 }
 
 http

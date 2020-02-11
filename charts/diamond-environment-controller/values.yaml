@@ -5,6 +5,9 @@ image:
   pullPolicy: IfNotPresent
 
 env: {}
+secretEnv:
+  GITHUB_ACCESS_TOKEN:
+    github-credentials: token
 
 service:
   name: diamond-environment-controller
@@ -34,6 +37,3 @@ readinessProbe:
   successThreshold: 1
   timeoutSeconds: 1
 
-secretEnv:
-  GITHUB_ACCESS_TOKEN:
-    github-credentials: token
