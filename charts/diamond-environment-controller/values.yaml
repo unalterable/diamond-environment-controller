@@ -10,6 +10,8 @@ env:
 secretEnv:
   GITHUB_ACCESS_TOKEN:
     github-credentials: token
+  MASTER_SECRET:
+    master-secret: password
 
 service:
   name: diamond-environment-controller
