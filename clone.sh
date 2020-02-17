@@ -7,9 +7,11 @@ echo GIT_URL: $GIT_URL
 
 git clone $GIT_URL deployment
 
+cd deployment/
+
 npm run decrypt $MASTER_SECRET || true
 
-cd deployment/env
+cd env/
 
 jx step helm apply
 
