@@ -2,15 +2,19 @@ const http = require('http')
 const childProcess = require('child_process')
 const port = 3000
 
+console.log = (...args) => console.log((new Date()).toISOString(), ...args)
+
 const addToPromiseChain = ((chain, iteration) => newItem => {
   const thisIteration = iteration++
   chain = chain.then(() => newItem(thisIteration)).catch(console.error)
   return thisIteration
 })(Promise.resolve(), 1)
 
-const exec = cmd => new Promise((resolve, reject) =>
-  childProcess.exec(cmd, (error, stdout) =>
-    error === null ? resolve(stdout) : reject(error.message)))
+const exec = (cmd, pre) => new Promise((resolve, reject) => {
+  console.log(pre, cmd)
+  const process = childProcess.exec(cmd, (error, stdout) => error === null ? resolve(stdout) : reject(error.message))
+  process.stdout.on('data', (data) => console.log(pre, data.toString()))
+})
 
 const processBody = request => new Promise((resolve, reject) => {
   let body = '';
@@ -25,14 +29,18 @@ const processBody = request => new Promise((resolve, reject) => {
 })
 
 const task = async currIteration => {
+  const pre = `>>> Iteration ${currIteration}`
   try {
-    console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} starting`)
-    const result = await exec('sh ./clone.sh')
-    console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} succeeded:`)
-    console.log(result)
+    console.log(pre, 'starting')
+    const githubUrl = process.env.ENV_REPO.replace('https://', `https://${process.env.GITHUB_ACCESS_TOKEN}@`)
+    await exec(`git clone ${githubUrl} deployment`, pre)
+    await exec('sh deployment/deploy.sh', pre)
+    await exec('rm -rf deployment', pre)
+    console.log(pre, `>>> Iteration ${currIteration} succeeded:`)
   } catch (e) {
-    console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} failed:`)
+    console.log(`>>> Iteration ${currIteration} failed:`)
     console.log(e)
+    await exec('rm -rf deployment && true', pre)
   }
 }
 
@@ -51,80 +59,3 @@ const requestHandler = async (request, response) => {
 http
   .createServer(requestHandler)
   .listen(port, () => console.log(`server is listening on ${port}`))
-
-// const http = require('http')
-// const childProcess = require('child_process')
-// const port = 3000
-
-// const exec = cmd => new Promise((resolve, reject) => {
-//   childProcess.exec(cmd, (error, stdout) => error === null ? resolve(stdout) : reject(error.message))
-// })
-
-// const execWithLog = cmd => console.log(cmd) || exec(cmd).then(res => console.log(res) || res).catch(err => { console.error(err); throw(err) })
-
-// const addToPromiseChain = ((chain, iteration) => newItem => {
-//   const thisIteration = iteration++
-//   chain = chain.then(() => newItem(thisIteration)).catch(console.error)
-//   return thisIteration
-// })(Promise.resolve(), 1)
-
-// const task = async currIteration => {
-//   try {
-//     console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} starting`)
-//     const envRepo = await execWithLog('kubectl get env this -o jsonpath="{.spec.source.url}"')
-//     const gitUrl = envRepo.replace(/https:\/\//, `https://${process.env.GITHUB_ACCESS_TOKEN}@`)
-//     await execWithLog(`git clone ${gitUrl} deployment`)
-//     await execWithLog('cd deployment/env')
-//     await execWithLog('jx step helm apply')
-//     await execWithLog('ls -latr')
-//     await execWithLog('rm -rf deployment')
-
-//     console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} succeeded:`)
-//   } catch (e) {
-//     console.log(`${(new Date()).toISOString()} >>> Iteration ${currIteration} failed:`)
-//     console.log(e)
-//   }
-// }
-
-// const registerTask = () => {
-//   const numberInQueue = addToPromiseChain(task)
-//   const result = `${(new Date()).toISOString()} >>> New task registered (Iteration ${numberInQueue})`
-//   console.log(result)
-//   return result
-// }
-
-// const processBody = request => new Promise((resolve, reject) => {
-//   let body = '';
-//   request.on('data', chunk => { body += chunk.toString() })
-//   request.on('end', () => {
-//     try {
-//       resolve(JSON.parse(body))
-//     } catch (e){
-//       reject(e)
-//     }
-//   });
-// })
-
-// const requestHandler = async (request, response) => {
-//   try {
-//     if (request.method === 'POST') {
-//       const body = await processBody(request)
-//       if(request.url === '/github-webhook' && body.ref === "refs/heads/master") {
-//         console.log('${(new Date()).toISOString()} >>> Request webhook event received')
-//         response.end(registerTask())
-//       } else {
-//         console.log('${(new Date()).toISOString()} >>> Request recieved and ignored (classified as invalid webhook)')
-//         response.end('Request ignored (classified as invalid webhook)')
-//       }
-//     } else {
-//       response.end('OK')
-//     }
-//   } catch (e) {
-//     console.log('${(new Date()).toISOString()} >>> Request created an error:', e)
-//     response.end(`Error ${e}`)
-//   }
-// }
-
-// http
-//   .createServer(requestHandler)
-//   .listen(port, () => console.log(`server is listening on ${port}`))
