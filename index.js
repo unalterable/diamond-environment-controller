@@ -34,7 +34,7 @@ const task = async currIteration => {
     log(pre, 'starting')
     const githubUrl = process.env.ENV_REPO.replace('https://', `https://${process.env.GITHUB_ACCESS_TOKEN}@`)
     await exec(`git clone ${githubUrl} deployment`, pre)
-    await exec('sh deployment/deploy.sh', pre)
+    await exec('cd deployment && sh ./deploy.sh', pre)
     await exec('rm -rf deployment', pre)
     log(pre, `>>> Iteration ${currIteration} succeeded:`)
   } catch (e) {
