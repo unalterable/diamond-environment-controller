@@ -14,8 +14,9 @@ RUN mkdir /app
 
 WORKDIR /app
 
-COPY ./clone.sh .
 COPY ./package.json .
+RUN npm install
+
 COPY ./index.js .
 
 CMD ["npm", "start"]
