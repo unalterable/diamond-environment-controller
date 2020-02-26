@@ -10,49 +10,48 @@ const addToPromiseChain = ((chain, iteration) => newItem => {
   return thisIteration
 })(Promise.resolve(), 1)
 
-const exec = (cmd, pre) => new Promise((resolve, reject) => {
-  log(pre, cmd)
+const exec = (cmd) => new Promise((resolve, reject) => {
+  log(cmd)
   const process = childProcess.exec(cmd, (error, stdout) => error === null ? resolve(stdout) : reject(error.message))
-  process.stdout.on('data', (data) => log(pre, data.toString()))
+  process.stdout.on('data', (data) => console.log(data.toString()))
 })
 
-const processBody = request => new Promise((resolve, reject) => {
+const processRequestBody = request => new Promise((resolve, reject) => {
   let body = '';
   request.on('data', chunk => { body += chunk.toString() })
-  request.on('end', () => {
-    try {
-      resolve(JSON.parse(body))
-    } catch (e){
-      resolve({})
-    }
-  });
+  request.on('end', () => {try {resolve(JSON.parse(body))} catch (e){resolve({})}});
 })
 
-const task = async currIteration => {
-  const pre = `>>> Iteration ${currIteration}`
+const deploymentTask = async taskNumber => {
   try {
-    log(pre, 'starting')
+    log(`>>> Task #${taskNumber} starting`)
     const githubUrl = process.env.ENV_REPO.replace('https://', `https://${process.env.GITHUB_ACCESS_TOKEN}@`)
-    await exec(`git clone ${githubUrl} deployment`, pre)
-    await exec('cd deployment && sh ./deploy.sh', pre)
-    await exec('rm -rf deployment', pre)
-    log(pre, `>>> Iteration ${currIteration} succeeded:`)
+    await exec(`git clone ${githubUrl} deployment`)
+    await exec(`cd deployment && sh ./deploy.sh`)
+    await exec(`rm -rf deployment`)
+    log(`>>> Task #${taskNumber} succeeded`)
   } catch (e) {
-    log(`>>> Iteration ${currIteration} failed:`)
-    log(e)
-    await exec('rm -rf deployment && true', pre)
+    log(`>>> Task #${taskNumber} failed:`)
+    console.log(e)
+    await exec(`rm -rf deployment && true`)
   }
+  log(`>>> Task #${taskNumber} completed`)
 }
 
+
+
 const requestHandler = async (request, response) => {
-  const body = await processBody(request)
-  if (request.url === '/github-webhook' && body.ref === "refs/heads/master"){
-    const numberInQueue = addToPromiseChain(task)
-    log(`>>> New task registered (Iteration ${numberInQueue})`)
-    response.end(`OK - New task registered (Iteration ${numberInQueue})`)
-  } else {
-    log('>>> Request Rejected')
-    response.end(`OK`)
+  try {
+    const body = await processRequestBody(request)
+
+    if (request.url !== '/github-webhook') throw Error('request.url !== \'/github-webhook\'')
+    if (body.ref !== 'refs/heads/master') throw Error('body.ref !== \'refs/heads/master\'')
+
+    const numberInQueue = addToPromiseChain(deploymentTask)
+    log(`>>> New task registered (#${numberInQueue})`)
+    response.end(`New task registered (#${numberInQueue})`)
+  } catch(e) {
+    response.end(`OK - request ignored, ${e.message}`)
   }
 }
 
