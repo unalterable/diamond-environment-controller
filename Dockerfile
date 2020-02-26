@@ -8,7 +8,7 @@ RUN chmod +x kubectl
 
 RUN curl -L "https://get.helm.sh/helm-v2.14.3-linux-amd64.tar.gz" | tar xzv --strip-components=1 "linux-amd64/helm"
 
-RUN curl -L "https://github.com/jenkins-x/jx/releases/download/$(curl --silent "https://github.com/jenkins-x/jx/releases/latest" | sed 's#.*tag/\(.*\)\".*#\1#')/jx-linux-amd64.tar.gz" | tar xzv "jx"
+RUN curl -L "https://github.com/jenkins-x/jx/releases/download/v2.0.1083/jx-linux-amd64.tar.gz" | tar xzv "jx"
 
 RUN mkdir /app
 
