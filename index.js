@@ -24,18 +24,18 @@ const processRequestBody = request => new Promise((resolve, reject) => {
 
 const deploymentTask = async taskNumber => {
   try {
-    log(`>>> Task #${taskNumber} starting`)
+    log(`>>>>> Task starting: #${taskNumber}`)
     const githubUrl = process.env.ENV_REPO.replace('https://', `https://${process.env.GITHUB_ACCESS_TOKEN}@`)
     await exec(`git clone ${githubUrl} deployment`)
     await exec(`cd deployment && sh ./deploy.sh`)
     await exec(`rm -rf deployment`)
-    log(`>>> Task #${taskNumber} succeeded`)
+    log(`>>>>> Task succeeded: #${taskNumber}`)
   } catch (e) {
-    log(`>>> Task #${taskNumber} failed:`)
+    log(`>>>>> Task failed: #${taskNumber}`)
     console.log(e)
     await exec(`rm -rf deployment && true`)
   }
-  log(`>>> Task #${taskNumber} completed`)
+  log(`>>>>> Task completed: #${taskNumber}`)
 }
 
 
@@ -48,8 +48,8 @@ const requestHandler = async (request, response) => {
     if (body.ref !== 'refs/heads/master') throw Error('body.ref !== \'refs/heads/master\'')
 
     const numberInQueue = addToPromiseChain(deploymentTask)
-    log(`>>> New task registered (#${numberInQueue})`)
-    response.end(`New task registered (#${numberInQueue})`)
+    log(`>>>>> Task registered: (#${numberInQueue})`)
+    response.end(`Task registered: (#${numberInQueue})`)
   } catch(e) {
     response.end(`OK - request ignored, ${e.message}`)
   }
